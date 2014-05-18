@@ -50,6 +50,14 @@
                 android:text="@string/short_cut_download_uptodate_summary"
                 android:textAppearance="?android:attr/textAppearanceSmall" />
 
+            <ProgressBar
+                android:id="@+id/short_cut_download_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:visibility="invisible" />
+
         </LinearLayout>
 
     </LinearLayout>

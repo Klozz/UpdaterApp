@@ -85,8 +85,8 @@ public class UpdateOTA extends Fragment implements OnSharedPreferenceChangeListe
         setButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 Intent intent = new Intent(getActivity(), Settings.class);
-               startActivity(intent);
-               }
+                startActivity(intent);
+            }
         });
 
         updateButton.setOnClickListener(new View.OnClickListener() {
@@ -163,17 +163,17 @@ public class UpdateOTA extends Fragment implements OnSharedPreferenceChangeListe
 
         SharedPreferences prefs = this.getActivity().getSharedPreferences("UpdateChecker", 0);
         String updateFile = prefs.getString("Filename", "");
-        String updateFileUrl = prefs.getString("DownloadUrl", "");
+        String isUpToDate = prefs.getString("isUpToDate", "");
 
         mUpdateFile.setTextColor(Color.RED);
 
         if (!UpdateChecker.connectivityAvailable(getActivity())) {
             mStrUpToDate = getString(R.string.no_data_title);
             mStatusIcon.setImageResource(R.drawable.ic_no_data);
-        } else if (updateFile.equals("")) {
+        } else if (updateFile.equals("") && isUpToDate.equals("")) {
             mStrUpToDate = getString(R.string.error_reading_title);
             mStatusIcon.setImageResource(R.drawable.ic_no_data);
-        } else if (!updateFile.equals("") && !updateFileUrl.equals("")) {
+        } else if (!isUpToDate.equals("") && isUpToDate.equals("unknown")) {
             mUpdateFile.setTextColor(Color.GREEN);
             mStrUpToDate = getString(R.string.up_to_date_title);
             mStatusIcon.setImageResource(R.drawable.ic_uptodate);

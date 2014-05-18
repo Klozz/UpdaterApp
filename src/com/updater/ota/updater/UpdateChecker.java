@@ -136,14 +136,14 @@ public class UpdateChecker extends AsyncTask<Context, Integer, String> {
             newBuildDate = separated[0];
             newFileName = separated[1];
             boolean upToDate = (Long.parseLong(updateCurVer) >= Long.parseLong(newBuildDate));
+            putDataInprefs(mContext, "Filename", newFileName);
             if (!upToDate) {
-                putDataInprefs(mContext, "Filename", newFileName);
+                putDataInprefs(mContext, "isUpToDate", "update");
                 newUpdateUrl = mContext.getString(R.string.xml_url_rom) + "/" + newFileName;
                 putDataInprefs(mContext, "DownloadUrl", newUpdateUrl);
                 Log.d(TAG, "Filename = "+ newFileName + "   DownloadUrl = " + newUpdateUrl);
             } else {
-                putDataInprefs(mContext, "Filename", "");
-                putDataInprefs(mContext, "DownloadUrl", "");
+                putDataInprefs(mContext, "isUpToDate", "unknown");
             }
             return newUpdateUrl;
         } catch(Exception e) {
