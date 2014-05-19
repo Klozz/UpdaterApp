@@ -2,6 +2,7 @@ package com.updater.ota;
 
 import com.updater.ota.R;
 
+import android.annotation.SuppressLint;
 import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +11,7 @@ import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.os.Process;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -218,6 +220,7 @@ public class UpdateLinks extends Fragment {
                 Log.w(TAG, "ROM Download Completed: " + result);
                 mDownloadSuccess = true;
                 mDownloadTitle.setTextColor(Color.YELLOW);
+                mDownloadTitle.setText(getString(R.string.short_cut_flash_title));
                 mDownloadSummary.setTextColor(Color.YELLOW);
                 mDownloadSummary.setText(getString(R.string.reboot));
             }
@@ -228,9 +231,56 @@ public class UpdateLinks extends Fragment {
         if (!mStrIsUpToDate.equals("")
                     && mStrIsUpToDate.equals("update")) {
             if (mDownloadSuccess) {
+                flashUpdate();
             } else {
                dTask.execute(url);
             }
+        }
+    }
+
+    private void flashErrorUpdate() {
+        mDownloadTitle.setTextColor(Color.RED);
+        mDownloadTitle.setText(getString(R.string.flash_error_title));
+        mDownloadSummary.setTextColor(Color.RED);
+        mDownloadSummary.setText(getString(R.string.flash_error));
+    }
+
+    @SuppressLint("SdCardPath")
+    private void flashUpdate() {
+        if (getActivity().getBaseContext().getPackageManager().checkPermission(PERMISSION_ACCESS_CACHE_FILESYSTEM,
+                getPackageName()) != PackageManager.PERMISSION_GRANTED) {
+            flashErrorUpdate();
+            return;
+        }
+
+        if (getActivity().getBaseContext().getPackageManager().checkPermission(PERMISSION_REBOOT,
+                getPackageName()) != PackageManager.PERMISSION_GRANTED) {
+            flashErrorUpdate();
+            return;
+        }
+
+        if ((mStrFileNameNew == null) || mStrFileNameNew.equals("")) {
+            flashErrorUpdate();
+            return;
+        }
+
+        try {
+            // TWRP - OpenRecoveryScript - the recovery will find the correct
+            // storage root for the ZIPs,
+            // life is nice and easy.
+            if ((flashFilename != null) && (!flashFilename.equals(""))) {
+                FileOutputStream os = new FileOutputStream("/cache/recovery/openrecoveryscript",
+                        false);
+                try {
+                    os.write(String.format("install %s\n", "/sdcard/UpdateOTA/" + mStrFileNameNew).getBytes("UTF-8"));
+                    os.write(("wipe cache\n").getBytes("UTF-8"));
+                } finally {
+                    os.close();
+                }
+            }
+            setPermissions("/cache/recovery/openrecoveryscript", 0644, Process.myUid(), 2001 /* AID_CACHE */);
+            ((PowerManager) getActivity().getBaseContext().getSystemService(Context.POWER_SERVICE)).reboot("recovery");
+        } catch (Exception e) {
         }
     }
 
@@ -240,5 +290,23 @@ public class UpdateLinks extends Fragment {
             mDownloadSummary.setTextColor(Color.GREEN);
             mDownloadSummary.setText(getString(R.string.short_cut_download_summary_update_available));
         }
+    }
+
+    /*
+     * Using reflection voodoo instead calling the hidden class directly, to
+     * dev/test outside of AOSP tree
+     */
+    private boolean setPermissions(String path, int mode, int uid, int gid) {
+        try {
+            Class<?> FileUtils = getClassLoader().loadClass("android.os.FileUtils");
+            Method setPermissions = FileUtils.getDeclaredMethod("setPermissions", new Class[] {
+                    String.class, int.class, int.class, int.class
+            });
+            return ((Integer) setPermissions.invoke(null, new Object[] {
+                    path, Integer.valueOf(mode), Integer.valueOf(uid), Integer.valueOf(gid)
+            }) == 0);
+        } catch (Exception e) {
+        }
+        return false;
     }
 }
