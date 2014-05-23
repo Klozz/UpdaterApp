@@ -244,7 +244,9 @@ public class UpdateLinks extends Fragment {
             if (mDownloadSuccess) {
                 flashUpdate();
             } else {
-               dTask.execute(url);
+                File updateDir = new File("/sdcard/UpdateOTA/");
+                updateDir.mkdirs();
+                dTask.execute(url);
             }
         }
     }
