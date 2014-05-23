@@ -7,6 +7,7 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -39,12 +40,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class UpdateLinks extends Fragment {
 
     private static final String TAG = "UpdateLinks";
+
+    private static final String PERMISSION_ACCESS_CACHE_FILESYSTEM = "android.permission.ACCESS_CACHE_FILESYSTEM";
+    private static final String PERMISSION_REBOOT = "android.permission.REBOOT";
 
     private LinearLayout mDownload;
     private TextView mDownloadTitle;
@@ -58,6 +63,8 @@ public class UpdateLinks extends Fragment {
 
     private DownloadRomTask dTask;
     private boolean mDownloadSuccess = false;
+
+    private Context mContext;
 
     public View onCreateView (LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.update_ota_links, container, false);
@@ -85,8 +92,8 @@ public class UpdateLinks extends Fragment {
         mDownloadSummary = (TextView) getView().findViewById(R.id.short_cut_download_summary);
         mProgressBar = (ProgressBar) getView().findViewById(R.id.short_cut_download_progress);
         mDownload.setOnClickListener(mActionLayouts);
-
-        dTask = new DownloadRomTask(getActivity().getBaseContext());
+        mContext = getActivity().getBaseContext();
+        dTask = new DownloadRomTask(mContext);
 
         try {
             FileInputStream fstream = new FileInputStream("/system/build.prop");
@@ -101,7 +108,7 @@ public class UpdateLinks extends Fragment {
             }
             in.close();
         } catch (Exception e) {
-            Toast.makeText(getActivity().getBaseContext(), getString(R.string.system_prop_error),
+            Toast.makeText(mContext, getString(R.string.system_prop_error),
                     Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
@@ -143,10 +150,10 @@ public class UpdateLinks extends Fragment {
 
                     // expect HTTP 200 OK, so we don't mistakenly save error report
                     // instead of the file
-                    if (connection.getResponseCode() != HttpURLConnection.HTTP_OK)
+                    if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
                         return "Server returned HTTP " + connection.getResponseCode()
                                 + " " + connection.getResponseMessage();
-
+                    }
                     // this will be useful to display download percentage
                     // might be -1: server did not report the length
                     int fileLength = connection.getContentLength();
@@ -161,27 +168,31 @@ public class UpdateLinks extends Fragment {
                     int count;
                     while ((count = input.read(data)) != -1) {
                         // allow canceling with back button
-                        if (isCancelled())
+                        if (isCancelled()) {
                             return null;
+                        }
                         total += count;
                         // publishing the progress....
-                        if (fileLength > 0) // only if total length is known
+                        if (fileLength > 0) { // only if total length is known
                             publishProgress((int) (total * 100 / fileLength));
+                        }
                         output.write(data, 0, count);
                     }
                 } catch (Exception e) {
                     return e.toString();
                 } finally {
                     try {
-                        if (output != null)
+                        if (output != null) {
                             output.close();
-                        if (input != null)
+                        }
+                        if (input != null) {
                             input.close();
-                    }
-                    catch (IOException ignored) { }
+                        }
+                    } catch (IOException ignored) { }
 
-                    if (connection != null)
+                    if (connection != null) {
                         connection.disconnect();
+                    }
                 }
             } finally {
                 wl.release();
@@ -216,7 +227,7 @@ public class UpdateLinks extends Fragment {
                 mProgressBar.setProgress(0);
                 UpdateChecker otaChecker = new UpdateChecker();
                 otaChecker.execute(context);
-            } else{
+            } else {
                 Log.w(TAG, "ROM Download Completed: " + result);
                 mDownloadSuccess = true;
                 mDownloadTitle.setTextColor(Color.YELLOW);
@@ -247,14 +258,14 @@ public class UpdateLinks extends Fragment {
 
     @SuppressLint("SdCardPath")
     private void flashUpdate() {
-        if (getActivity().getBaseContext().getPackageManager().checkPermission(PERMISSION_ACCESS_CACHE_FILESYSTEM,
-                getPackageName()) != PackageManager.PERMISSION_GRANTED) {
+        if (mContext.getPackageManager().checkPermission(PERMISSION_ACCESS_CACHE_FILESYSTEM,
+                mContext.getPackageName()) != PackageManager.PERMISSION_GRANTED) {
             flashErrorUpdate();
             return;
         }
 
-        if (getActivity().getBaseContext().getPackageManager().checkPermission(PERMISSION_REBOOT,
-                getPackageName()) != PackageManager.PERMISSION_GRANTED) {
+        if (mContext.getPackageManager().checkPermission(PERMISSION_REBOOT,
+                mContext.getPackageName()) != PackageManager.PERMISSION_GRANTED) {
             flashErrorUpdate();
             return;
         }
@@ -268,7 +279,7 @@ public class UpdateLinks extends Fragment {
             // TWRP - OpenRecoveryScript - the recovery will find the correct
             // storage root for the ZIPs,
             // life is nice and easy.
-            if ((flashFilename != null) && (!flashFilename.equals(""))) {
+            if ((mStrFileNameNew != null) && (!mStrFileNameNew.equals(""))) {
                 FileOutputStream os = new FileOutputStream("/cache/recovery/openrecoveryscript",
                         false);
                 try {
@@ -279,7 +290,7 @@ public class UpdateLinks extends Fragment {
                 }
             }
             setPermissions("/cache/recovery/openrecoveryscript", 0644, Process.myUid(), 2001 /* AID_CACHE */);
-            ((PowerManager) getActivity().getBaseContext().getSystemService(Context.POWER_SERVICE)).reboot("recovery");
+            ((PowerManager) mContext.getSystemService(Context.POWER_SERVICE)).reboot("recovery");
         } catch (Exception e) {
         }
     }
@@ -298,7 +309,7 @@ public class UpdateLinks extends Fragment {
      */
     private boolean setPermissions(String path, int mode, int uid, int gid) {
         try {
-            Class<?> FileUtils = getClassLoader().loadClass("android.os.FileUtils");
+            Class<?> FileUtils = mContext.getClassLoader().loadClass("android.os.FileUtils");
             Method setPermissions = FileUtils.getDeclaredMethod("setPermissions", new Class[] {
                     String.class, int.class, int.class, int.class
             });

@@ -17,7 +17,7 @@
     <string name="update_file_title">Update:</string>
     <string name="ota_title">Update OTA</string>
     <string name="reboot">All done! Click here to reboot your device now and flash the update.</string>
-    <string name="flash_error_title">Please manual reboot!</string>
+    <string name="flash_error_title">Please manual reboot to recovery!</string>
     <string name="flash_error">There is a problem after download the update.</string>
 
     <string name="settings_title">UpdateOTA Settings</string>
@@ -41,7 +41,7 @@
     <string name="short_cut_download_uptodate_summary">Download Update ROM</string>
     <string name="short_cut_flash_title">Flash the Update</string>
 
-    <string name="xml_url">https://raw.githubusercontent.com/Squadzone/UpdaterApp/master/LATEST_example</string>
-    <string name="xml_url_rom">https://s3-ap-southeast-1.amazonaws.com</string>
+    <string name="xml_url">https://s3-ap-southeast-1.amazonaws.com/opiumota/LATEST</string>
+    <string name="xml_url_rom">https://s3-ap-southeast-1.amazonaws.com/opiumota</string>
     <string name="notification_message">ROM update available</string>
 </resources>
